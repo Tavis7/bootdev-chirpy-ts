@@ -7,9 +7,9 @@ const PORT = 8080;
 
 app.use(middlewareLogResponses);
 app.use("/app", middlewareMetricsInc, express.static("./src/app"));
-app.get("/healthz", handlerReadiness);
-app.get("/metrics", handlerMetrics);
-app.get("/reset", handlerReset);
+app.get("/api/healthz", handlerReadiness);
+app.get("/admin/metrics", handlerMetrics);
+app.post("/admin/reset", handlerReset);
 
 async function handlerReadiness(req: Request, res: Response): Promise<void> {
     res.set("Content-Type", "text/plain");
@@ -18,7 +18,12 @@ async function handlerReadiness(req: Request, res: Response): Promise<void> {
 
 async function handlerMetrics(req: Request, res: Response): Promise<void> {
     res.set("Content-Type", "text/html");
-    res.send(`Hits: ${config.fileserverHits}`);
+    res.send([
+        "<html>", "<body>",
+        "<h1>Welcome, Chirpy Admin</h1>",
+        `<p>Chirpy has been visited ${config.fileserverHits} times!</p>`,
+        "</body>", "</html>"
+    ].join(""));
 }
 
 async function handlerReset(req: Request, res: Response): Promise<void> {
