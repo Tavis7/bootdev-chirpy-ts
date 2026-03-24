@@ -8,8 +8,46 @@ const PORT = 8080;
 app.use(middlewareLogResponses);
 app.use("/app", middlewareMetricsInc, express.static("./src/app"));
 app.get("/api/healthz", handlerReadiness);
+app.post("/api/validate_chirp", handlerValidateChirp);
 app.get("/admin/metrics", handlerMetrics);
 app.post("/admin/reset", handlerReset);
+
+type Chirp = {
+    body: string,
+};
+
+async function handlerValidateChirp(req: Request, res: Response): Promise<void> {
+    let chunks:Array<string> = [];
+
+    if (req.get("Content-Type") !== "application/json") {
+        res.status(400).send(JSON.stringify({error: "Chirp is too long"}));
+    }
+    req.on("data", (chunk) => {
+        chunks.push(chunk);
+    });
+
+    req.on("end", () => {
+        try {
+            const body = chunks.join("");
+            let parsedBody = JSON.parse(body);
+            if (parsedBody && typeof parsedBody.body == "string") {
+                if (parsedBody.body.length <= 140) {
+                    res.status(200).send(JSON.stringify({valid: true}));
+                    return;
+                } else {
+                    res.status(400).send(JSON.stringify({error: "Chirp is too long"}));
+                    return;
+                }
+            } else {
+                res.status(400).send(JSON.stringify({error: "Invalid request"}));
+                return;
+            }
+        } catch (e) {
+            res.status(400).send("Invalid JSON");
+            return;
+        }
+    });
+}
 
 async function handlerReadiness(req: Request, res: Response): Promise<void> {
     res.set("Content-Type", "text/plain");
