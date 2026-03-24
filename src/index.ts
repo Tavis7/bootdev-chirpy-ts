@@ -18,11 +18,23 @@ type Chirp = {
 };
 
 async function handlerValidateChirp(req: Request, res: Response): Promise<void> {
+    let badWords = ["kerfuffle", "sharbert", "fornax"];
     try {
         let parsedBody = req.body
         if (parsedBody && typeof parsedBody.body == "string") {
-            if (parsedBody.body.length <= 140) {
-                res.status(200).send(JSON.stringify({valid: true}));
+            let chirpBody = parsedBody.body;
+            if (chirpBody.length <= 140) {
+                let words = chirpBody.split(" ");
+                let cleanedWords: Array<string> = [];
+                for (let word of words) {
+                    if (badWords.includes(word.toLowerCase())) {
+                        cleanedWords.push("****");
+                    }
+                    else {
+                        cleanedWords.push(word);
+                    }
+                }
+                res.status(200).send(JSON.stringify({cleanedBody: cleanedWords.join(" ")}));
                 return;
             } else {
                 res.status(400).send(JSON.stringify({error: "Chirp is too long"}));
@@ -33,6 +45,7 @@ async function handlerValidateChirp(req: Request, res: Response): Promise<void> 
             return;
         }
     } catch (e) {
+        console.log(e);
         res.status(400).send("Invalid JSON");
         return;
     }
