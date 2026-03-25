@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import { config } from "../config.js";
 
+import { BadRequestError } from "./errors.js";
+
 export async function handlerReadiness(req: Request, res: Response): Promise<void> {
     res.set("Content-Type", "text/plain");
     res.send("OK");
@@ -9,9 +11,10 @@ export async function handlerReadiness(req: Request, res: Response): Promise<voi
 export async function handlerValidateChirp(req: Request, res: Response): Promise<void> {
     let badWords = ["kerfuffle", "sharbert", "fornax"];
     let parsedBody = req.body
+    const maxChirpLength = 140;
     if (parsedBody && typeof parsedBody.body == "string") {
         let chirpBody = parsedBody.body;
-        if (chirpBody.length <= 140) {
+        if (chirpBody.length <= maxChirpLength) {
             let words = chirpBody.split(" ");
             let cleanedWords: Array<string> = [];
             for (let word of words) {
@@ -25,13 +28,10 @@ export async function handlerValidateChirp(req: Request, res: Response): Promise
             res.status(200).json({cleanedBody: cleanedWords.join(" ")});
             return;
         } else {
-            throw new Error("Chirp is too long");
-            res.status(400).json({error: "Chirp is too long"});
-            return;
+            throw new BadRequestError(`Chirp is too long. Max length is ${maxChirpLength}`);
         }
     } else {
-        res.status(400).json({error: "Invalid request"});
-        return;
+        throw new BadRequestError("Invalid request");
     }
 }
 
