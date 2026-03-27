@@ -8,6 +8,13 @@
       "when": 1774565900706,
       "tag": "0000_pink_mysterio",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1774645716477,
+      "tag": "0001_far_bloodstrike",
+      "breakpoints": true
     }
   ]
 }
