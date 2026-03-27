@@ -15,7 +15,7 @@ export function middlewareLogResponses(req: Request, res: Response, next: NextFu
 
 export function middlewareMetricsInc(req: Request, res: Response, next: NextFunction) {
     console.log("Incrementing hits");
-    config.fileserverHits += 1;
+    config.api.fileserverHits += 1;
     next();
 }
 

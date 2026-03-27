@@ -40,13 +40,13 @@ export async function handlerMetrics(req: Request, res: Response): Promise<void>
     res.send([
         "<html>", "<body>",
         "<h1>Welcome, Chirpy Admin</h1>",
-        `<p>Chirpy has been visited ${config.fileserverHits} times!</p>`,
+        `<p>Chirpy has been visited ${config.api.fileserverHits} times!</p>`,
         "</body>", "</html>"
     ].join(""));
 }
 
 export async function handlerReset(req: Request, res: Response): Promise<void> {
-    config.fileserverHits = 0;
+    config.api.fileserverHits = 0;
     res.set("Content-Type", "text/html");
-    res.send(`Hits: ${config.fileserverHits}`);
+    res.send(`Hits: ${config.api.fileserverHits}`);
 }
