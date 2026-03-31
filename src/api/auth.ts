@@ -32,7 +32,6 @@ export function validateJWT(tokenString: string, secret: string): string {
             return payload.sub;
         }
     } catch (e) {
-
         if (!(e instanceof jwt.JsonWebTokenError)) {
             throw e;
         }

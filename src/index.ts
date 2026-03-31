@@ -12,6 +12,7 @@ import {
     handlerMetrics,
     handlerReset,
     handlerRegisterUser,
+    handlerUpdateUser,
     handlerLogin,
     handlerRefresh,
     handlerRevoke,
@@ -42,6 +43,7 @@ app.use("/app", middlewareMetricsInc, express.static("./src/app"));
 app.get("/api/healthz", middlewareErrorCatcher(handlerReadiness));
 
 app.post("/api/users", middlewareErrorCatcher(handlerRegisterUser));
+app.put("/api/users", middlewareErrorCatcher(handlerUpdateUser));
 app.post("/api/login", middlewareErrorCatcher(handlerLogin));
 app.post("/api/refresh", middlewareErrorCatcher(handlerRefresh));
 app.post("/api/revoke", middlewareErrorCatcher(handlerRevoke));

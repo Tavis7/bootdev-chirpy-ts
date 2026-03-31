@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { config } from "../config.js";
-import { createUser, getUserByEmail, deleteUsers } from "../db/queries/users.js";
+import { createUser, getUserByEmail, updateUser, deleteUsers } from "../db/queries/users.js";
 import { createChirp, getChirps, getChirp } from "../db/queries/chirps.js";
 
 import { BadRequestError, UnauthorizedError } from "./errors.js";
@@ -48,6 +48,25 @@ export async function handlerRegisterUser(req: Request, res: Response): Promise<
         email: created.email,
         createdAt: created.createdAt,
         updatedAt: created.updatedAt,
+    });
+}
+
+export async function handlerUpdateUser(req: Request, res: Response) {
+    let userId = validateJWT(getBearerToken(req), config.api.secret)
+    let userJson = req.body;
+    if (typeof userJson.email !== "string" || typeof userJson.password !== "string") {
+        throw new BadRequestError("Invalid request");
+    }
+
+    let hashedPassword = await hashPassword(userJson.password)
+    let updated = await updateUser(userId,
+        {email: userJson.email, hashedPassword: hashedPassword});
+
+    res.status(200).json({
+        id: updated.id,
+        email: updated.email,
+        createdAt: updated.createdAt,
+        updatedAt: updated.updatedAt,
     });
 }
 
