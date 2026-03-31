@@ -28,7 +28,7 @@ export async function handlerReset(req: Request, res: Response): Promise<void> {
     res.send(`Hits: ${config.api.fileserverHits}`);
 }
 
-import { hashPassword, checkPasswordHash } from "./auth.js";
+import { hashPassword, checkPasswordHash, makeJWT, validateJWT, getBearerToken } from "./auth.js";
 
 export async function handlerRegisterUser(req: Request, res: Response): Promise<void> {
     let userJson = req.body;
@@ -52,9 +52,18 @@ export async function handlerRegisterUser(req: Request, res: Response): Promise<
 
 export async function handlerLogin(req: Request, res: Response): Promise<void> {
     let loginJson = req.body;
-    if (typeof loginJson.email !== "string" || typeof loginJson.password !== "string") {
+    if (typeof loginJson.email !== "string" || typeof loginJson.password !== "string" ||
+        (loginJson.expiresInSeconds !== undefined &&
+            typeof loginJson.expiresInSeconds !== "number")) {
         throw new BadRequestError("Invalid request");
     }
+
+    const maxExpirationTime = 1000 * 60 * 60;
+    if (loginJson.expiresInSeconds === undefined || loginJson.expiresInSeconds > maxExpirationTime) {
+        loginJson.expiresInSeconds = maxExpirationTime;
+    }
+
+    loginJson.expiresInSeconds = Math.max(0, loginJson.expiresInSeconds);
 
     let user = await getUserByEmail(loginJson.email);
     let authenticated = await checkPasswordHash(user.hashedPassword, loginJson.password);
@@ -62,11 +71,13 @@ export async function handlerLogin(req: Request, res: Response): Promise<void> {
         throw new UnauthorizedError("Incorrect email or password");
     }
     console.log(`Logged in ${user.id} ${user.email}`);
+    let token = makeJWT(user.id, loginJson.expiresInSeconds, config.api.secret);
     res.status(200).json({
         id: user.id,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
         email: user.email,
+        token: token,
     });
 }
 
@@ -83,12 +94,14 @@ function chirpResponse(chirp: Chirp) {
 }
 
 export async function handlerCreateChirp(req: Request, res: Response): Promise<void> {
+    let userId = validateJWT(getBearerToken(req), config.api.secret)
     let chirp = req.body
-    if (!(typeof chirp.body === "string" && typeof chirp.userId === "string")) {
+    if (!(typeof chirp.body === "string")) {
         throw new BadRequestError("Invalid request");
     }
+
     let chirpText = validateChirp(chirp.body);
-    let created = await createChirp({userId: chirp.userId, body: chirp.body});
+    let created = await createChirp({userId: userId, body: chirp.body});
     console.log(created);
     if (created === undefined) {
         throw new BadRequestError("Couldn't create chirp");

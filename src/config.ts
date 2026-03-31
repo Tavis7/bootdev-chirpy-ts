@@ -2,7 +2,8 @@ import type { MigrationConfig } from "drizzle-orm/migrator";
 
 type APIConfig = {
     fileserverHits: number,
-    port:number,
+    port: number,
+    secret: string,
 };
 
 type DbConfig = {
@@ -28,6 +29,7 @@ export const config:ChirpyConfig = {
     api: {
         fileserverHits: 0,
         port: 8080,
+        secret: envOrThrow("SECRET"),
     },
     db: {
         url: envOrThrow("DB_URL"),
