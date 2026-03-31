@@ -28,7 +28,8 @@ export async function handlerReset(req: Request, res: Response): Promise<void> {
     res.send(`Hits: ${config.api.fileserverHits}`);
 }
 
-import { hashPassword, checkPasswordHash, makeJWT, validateJWT, getBearerToken } from "./auth.js";
+import { hashPassword, checkPasswordHash, makeJWT, validateJWT, getBearerToken, makeRefreshToken } from "./auth.js";
+import { createRefreshToken, getRefreshToken, revokeRefreshToken } from "../db/queries/refreshTokens.js";
 
 export async function handlerRegisterUser(req: Request, res: Response): Promise<void> {
     let userJson = req.body;
@@ -50,20 +51,14 @@ export async function handlerRegisterUser(req: Request, res: Response): Promise<
     });
 }
 
+const jwtExpirationTime = 60 * 60;
+
 export async function handlerLogin(req: Request, res: Response): Promise<void> {
     let loginJson = req.body;
-    if (typeof loginJson.email !== "string" || typeof loginJson.password !== "string" ||
-        (loginJson.expiresInSeconds !== undefined &&
-            typeof loginJson.expiresInSeconds !== "number")) {
+    if (typeof loginJson.email !== "string" || typeof loginJson.password !== "string") {
         throw new BadRequestError("Invalid request");
     }
 
-    const maxExpirationTime = 1000 * 60 * 60;
-    if (loginJson.expiresInSeconds === undefined || loginJson.expiresInSeconds > maxExpirationTime) {
-        loginJson.expiresInSeconds = maxExpirationTime;
-    }
-
-    loginJson.expiresInSeconds = Math.max(0, loginJson.expiresInSeconds);
 
     let user = await getUserByEmail(loginJson.email);
     let authenticated = await checkPasswordHash(user.hashedPassword, loginJson.password);
@@ -71,14 +66,59 @@ export async function handlerLogin(req: Request, res: Response): Promise<void> {
         throw new UnauthorizedError("Incorrect email or password");
     }
     console.log(`Logged in ${user.id} ${user.email}`);
-    let token = makeJWT(user.id, loginJson.expiresInSeconds, config.api.secret);
+    let token = makeJWT(user.id, jwtExpirationTime, config.api.secret);
+    let refresh = await createRefreshToken({
+        token: makeRefreshToken(),
+        userId: user.id,
+        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 60)
+    });
+
+    console.log("Refresh row");
+    console.log(refresh);
+
     res.status(200).json({
         id: user.id,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
         email: user.email,
         token: token,
+        refreshToken: refresh.token,
     });
+}
+
+export async function handlerRefresh(req: Request, res: Response) {
+    let refreshTokenData = await getRefreshToken(getBearerToken(req));
+    if (refreshTokenData === null) {
+        throw new UnauthorizedError("Invalid refresh token");
+    }
+
+    let now = new Date();
+    console.log(refreshTokenData.expiresAt);
+    console.log(now);
+    if (refreshTokenData.expiresAt < now) {
+        throw new UnauthorizedError("Refresh token expired");
+    }
+
+    console.log(refreshTokenData);
+
+    if (refreshTokenData.revokedAt !== null) {
+        throw new UnauthorizedError("Refresh token has been revoked");
+    }
+
+    let jwt = makeJWT(refreshTokenData.userId, jwtExpirationTime, config.api.secret);
+
+    res.status(200).json({
+        token: jwt,
+    });
+}
+
+export async function handlerRevoke(req: Request, res: Response) {
+    let token = getBearerToken(req);
+    let revoked = await revokeRefreshToken(token);
+    if (revoked.revokedAt === null) {
+        throw new Error("Failed to revoke refresh token");
+    }
+    res.status(204).end();
 }
 
 type Chirp = Awaited<ReturnType<typeof createChirp>>

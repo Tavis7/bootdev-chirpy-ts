@@ -3,6 +3,7 @@ import argon2 from "argon2";
 import jwt from "jsonwebtoken";
 import type { JwtPayload } from "jsonwebtoken";
 import { UnauthorizedError } from "./errors.js";
+import crypto from "node:crypto";
 
 export function hashPassword(password: string) {
     return argon2.hash(password);
@@ -54,4 +55,10 @@ export function extractBearerToken(bearer: string): string {
         return parts[2].trim();
     }
     throw new UnauthorizedError("Unauthorized");
+}
+
+export function makeRefreshToken() {
+    let bytes = crypto.randomBytes(32);
+    let token = bytes.toString("hex");
+    return token;
 }

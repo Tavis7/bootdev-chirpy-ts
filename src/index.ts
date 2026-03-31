@@ -13,6 +13,8 @@ import {
     handlerReset,
     handlerRegisterUser,
     handlerLogin,
+    handlerRefresh,
+    handlerRevoke,
     handlerGetChirps,
     handlerGetChirp,
 } from "./api/handlers.js";
@@ -41,6 +43,8 @@ app.get("/api/healthz", middlewareErrorCatcher(handlerReadiness));
 
 app.post("/api/users", middlewareErrorCatcher(handlerRegisterUser));
 app.post("/api/login", middlewareErrorCatcher(handlerLogin));
+app.post("/api/refresh", middlewareErrorCatcher(handlerRefresh));
+app.post("/api/revoke", middlewareErrorCatcher(handlerRevoke));
 app.post("/api/chirps", middlewareErrorCatcher(handlerCreateChirp));
 app.get("/api/chirps", middlewareErrorCatcher(handlerGetChirps));
 app.get("/api/chirps/:chirpId", middlewareErrorCatcher(handlerGetChirp));
