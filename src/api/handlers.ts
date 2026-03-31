@@ -1,9 +1,9 @@
 import { Request, Response, NextFunction } from "express";
 import { config } from "../config.js";
-import { createUser, deleteUsers } from "../db/queries/users.js";
+import { createUser, getUserByEmail, deleteUsers } from "../db/queries/users.js";
 import { createChirp, getChirps, getChirp } from "../db/queries/chirps.js";
 
-import { BadRequestError } from "./errors.js";
+import { BadRequestError, UnauthorizedError } from "./errors.js";
 
 export async function handlerReadiness(req: Request, res: Response): Promise<void> {
     res.set("Content-Type", "text/plain");
@@ -28,13 +28,16 @@ export async function handlerReset(req: Request, res: Response): Promise<void> {
     res.send(`Hits: ${config.api.fileserverHits}`);
 }
 
+import { hashPassword, checkPasswordHash } from "./auth.js";
+
 export async function handlerRegisterUser(req: Request, res: Response): Promise<void> {
     let userJson = req.body;
-    if (userJson.email === undefined) {
+    if (userJson.email === undefined || userJson.password === undefined) {
         throw new BadRequestError("Invalid request");
     }
 
-    let created = await createUser({email: userJson.email});
+    let hashedPassword = await hashPassword(userJson.password)
+    let created = await createUser({email: userJson.email, hashedPassword: hashedPassword});
     if (created === undefined) {
         throw new BadRequestError(`Couldn't crete user ${userJson.email}`);
     }
@@ -44,6 +47,26 @@ export async function handlerRegisterUser(req: Request, res: Response): Promise<
         email: created.email,
         createdAt: created.createdAt,
         updatedAt: created.updatedAt,
+    });
+}
+
+export async function handlerLogin(req: Request, res: Response): Promise<void> {
+    let loginJson = req.body;
+    if (typeof loginJson.email !== "string" || typeof loginJson.password !== "string") {
+        throw new BadRequestError("Invalid request");
+    }
+
+    let user = await getUserByEmail(loginJson.email);
+    let authenticated = await checkPasswordHash(user.hashedPassword, loginJson.password);
+    if (authenticated !== true) {
+        throw new UnauthorizedError("Incorrect email or password");
+    }
+    console.log(`Logged in ${user.id} ${user.email}`);
+    res.status(200).json({
+        id: user.id,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+        email: user.email,
     });
 }
 

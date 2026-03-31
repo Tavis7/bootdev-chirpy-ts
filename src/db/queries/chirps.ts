@@ -1,4 +1,4 @@
-import { db } from "../index.js"
+import { db } from "../index.js";
 import { NewChirp, chirps } from "../schema.js";
 import { asc, eq } from "drizzle-orm";
 

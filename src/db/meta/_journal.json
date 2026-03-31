@@ -15,6 +15,13 @@
       "when": 1774645716477,
       "tag": "0001_far_bloodstrike",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1774916672178,
+      "tag": "0002_volatile_kinsey_walden",
+      "breakpoints": true
     }
   ]
 }

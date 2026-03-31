@@ -12,6 +12,7 @@ import {
     handlerMetrics,
     handlerReset,
     handlerRegisterUser,
+    handlerLogin,
     handlerGetChirps,
     handlerGetChirp,
 } from "./api/handlers.js";
@@ -39,6 +40,7 @@ app.use("/app", middlewareMetricsInc, express.static("./src/app"));
 app.get("/api/healthz", middlewareErrorCatcher(handlerReadiness));
 
 app.post("/api/users", middlewareErrorCatcher(handlerRegisterUser));
+app.post("/api/login", middlewareErrorCatcher(handlerLogin));
 app.post("/api/chirps", middlewareErrorCatcher(handlerCreateChirp));
 app.get("/api/chirps", middlewareErrorCatcher(handlerGetChirps));
 app.get("/api/chirps/:chirpId", middlewareErrorCatcher(handlerGetChirp));
