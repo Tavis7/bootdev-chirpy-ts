@@ -18,6 +18,8 @@ import {
     handlerRevoke,
     handlerGetChirps,
     handlerGetChirp,
+    handlerDeleteChirp,
+    handlerUpgradeUser,
 } from "./api/handlers.js";
 
 import {
@@ -50,6 +52,9 @@ app.post("/api/revoke", middlewareErrorCatcher(handlerRevoke));
 app.post("/api/chirps", middlewareErrorCatcher(handlerCreateChirp));
 app.get("/api/chirps", middlewareErrorCatcher(handlerGetChirps));
 app.get("/api/chirps/:chirpId", middlewareErrorCatcher(handlerGetChirp));
+app.delete("/api/chirps/:chirpId", middlewareErrorCatcher(handlerDeleteChirp));
+
+app.post("/api/polka/webhooks", middlewareErrorCatcher(handlerUpgradeUser));
 
 app.get("/admin/metrics", middlewareErrorCatcher(handlerMetrics));
 app.post("/admin/reset", middlewareErrorCatcher(handlerReset));

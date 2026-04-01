@@ -1,9 +1,9 @@
 import { Request, Response, NextFunction } from "express";
 import { config } from "../config.js";
-import { createUser, getUserByEmail, updateUser, deleteUsers } from "../db/queries/users.js";
-import { createChirp, getChirps, getChirp } from "../db/queries/chirps.js";
+import { createUser, getUserByEmail, updateUser, upgradeUser, deleteUsers } from "../db/queries/users.js";
+import { createChirp, getChirps, getChirp, deleteChirp } from "../db/queries/chirps.js";
 
-import { BadRequestError, UnauthorizedError } from "./errors.js";
+import { BadRequestError, UnauthorizedError, NotFoundError, ForbiddenError } from "./errors.js";
 
 export async function handlerReadiness(req: Request, res: Response): Promise<void> {
     res.set("Content-Type", "text/plain");
@@ -43,12 +43,7 @@ export async function handlerRegisterUser(req: Request, res: Response): Promise<
         throw new BadRequestError(`Couldn't crete user ${userJson.email}`);
     }
     console.log(`Created user ${userJson.email}`);
-    res.status(201).json({
-        id: created.id,
-        email: created.email,
-        createdAt: created.createdAt,
-        updatedAt: created.updatedAt,
-    });
+    res.status(201).json(userResponse(created));
 }
 
 export async function handlerUpdateUser(req: Request, res: Response) {
@@ -62,12 +57,7 @@ export async function handlerUpdateUser(req: Request, res: Response) {
     let updated = await updateUser(userId,
         {email: userJson.email, hashedPassword: hashedPassword});
 
-    res.status(200).json({
-        id: updated.id,
-        email: updated.email,
-        createdAt: updated.createdAt,
-        updatedAt: updated.updatedAt,
-    });
+    res.status(200).json(userResponse(updated));
 }
 
 const jwtExpirationTime = 60 * 60;
@@ -77,7 +67,6 @@ export async function handlerLogin(req: Request, res: Response): Promise<void> {
     if (typeof loginJson.email !== "string" || typeof loginJson.password !== "string") {
         throw new BadRequestError("Invalid request");
     }
-
 
     let user = await getUserByEmail(loginJson.email);
     let authenticated = await checkPasswordHash(user.hashedPassword, loginJson.password);
@@ -96,10 +85,7 @@ export async function handlerLogin(req: Request, res: Response): Promise<void> {
     console.log(refresh);
 
     res.status(200).json({
-        id: user.id,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt,
-        email: user.email,
+        ...userResponse(user),
         token: token,
         refreshToken: refresh.token,
     });
@@ -152,6 +138,18 @@ function chirpResponse(chirp: Chirp) {
     }
 }
 
+type User = Awaited<ReturnType<typeof createUser>>;
+
+function userResponse(user: User) {
+    return {
+        id: user.id,
+        email: user.email,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+        isChirpyRed: user.isChirpyRed,
+    };
+}
+
 export async function handlerCreateChirp(req: Request, res: Response): Promise<void> {
     let userId = validateJWT(getBearerToken(req), config.api.secret)
     let chirp = req.body
@@ -184,11 +182,39 @@ export async function handlerGetChirp(req: Request, res: Response): Promise<void
     let got = await getChirp(req.params.chirpId);
     console.log(got);
     if (got === undefined) {
-        res.status(404).json({
-            error: "Chirp not found",
-        });
+        throw new NotFoundError("Chirp not found");
     }
     res.status(200).json(chirpResponse(got));
+}
+
+export async function handlerDeleteChirp(req: Request, res: Response) {
+    if (typeof req.params.chirpId !== "string") {
+        throw new Error("Invalid request");
+    }
+    let userId = validateJWT(getBearerToken(req), config.api.secret)
+    let chirp = await getChirp(req.params.chirpId);
+    if (chirp === undefined) {
+        throw new NotFoundError("Chirp not found");
+    }
+    if (chirp.userId !== userId) {
+        throw new ForbiddenError("Not authorized");
+    }
+    let deleted = await deleteChirp(userId, chirp.id);
+    res.status(204).end();
+}
+
+export async function handlerUpgradeUser(req: Request, res: Response) {
+    let hookJson = req.body;
+    if (hookJson.event !== "user.upgraded" || typeof hookJson.data?.userId !== "string") {
+        res.status(204).end();
+        return;
+    }
+    let result = await upgradeUser(hookJson.data.userId);
+    if (result !== undefined) {
+        res.status(204).end();
+        return;
+    }
+    throw new NotFoundError("User not found");
 }
 
 function validateChirp(text: string): string {
