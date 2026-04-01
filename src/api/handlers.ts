@@ -44,9 +44,22 @@ import {
     revokeRefreshToken,
 } from "../db/queries/refreshTokens.js";
 
+type UserRequest = {
+    email: string,
+    password: string,
+};
+
+function isUserRequest(request: Record<string, string>): request is UserRequest {
+    if (typeof request.email === "string" &&
+        typeof request.password === "string") {
+        return true;
+    }
+    return false;
+}
+
 export async function handlerRegisterUser(req: Request, res: Response): Promise<void> {
     let userJson = req.body;
-    if (userJson.email === undefined || userJson.password === undefined) {
+    if (!isUserRequest(userJson)) {
         throw new BadRequestError("Invalid request");
     }
 
@@ -62,7 +75,7 @@ export async function handlerRegisterUser(req: Request, res: Response): Promise<
 export async function handlerUpdateUser(req: Request, res: Response) {
     let userId = validateJWT(getBearerToken(req), config.auth.jwtSecret)
     let userJson = req.body;
-    if (typeof userJson.email !== "string" || typeof userJson.password !== "string") {
+    if (!isUserRequest(userJson)) {
         throw new BadRequestError("Invalid request");
     }
 
@@ -75,7 +88,7 @@ export async function handlerUpdateUser(req: Request, res: Response) {
 
 export async function handlerLogin(req: Request, res: Response): Promise<void> {
     let loginJson = req.body;
-    if (typeof loginJson.email !== "string" || typeof loginJson.password !== "string") {
+    if (!isUserRequest(loginJson)) {
         throw new BadRequestError("Invalid request");
     }
 
@@ -151,9 +164,9 @@ function chirpResponse(chirp: Chirp) {
     }
 }
 
-type User = Awaited<ReturnType<typeof createUser>>;
+type UserRow = Awaited<ReturnType<typeof createUser>>;
 
-function userResponse(user: User) {
+function userResponse(user: UserRow) {
     return {
         id: user.id,
         email: user.email,
@@ -162,6 +175,9 @@ function userResponse(user: User) {
         isChirpyRed: user.isChirpyRed,
     };
 }
+
+type ChirpRequest = {
+};
 
 export async function handlerCreateChirp(req: Request, res: Response): Promise<void> {
     let userId = validateJWT(getBearerToken(req), config.auth.jwtSecret)
@@ -185,7 +201,11 @@ export async function handlerGetChirps(req: Request, res: Response): Promise<voi
     if (typeof req.query?.authorId === "string") {
         author = req.query.authorId
     }
-    let got = await getChirps(author);
+    let sort = req.query.sort;
+    if (sort !== undefined && sort !== "asc" && sort !== "desc") {
+        throw new Error("Invalid request");
+    }
+    let got = await getChirps({authorId: author, sort: sort});
     let result: Array<Chirp> = [];
     for (let chirp of got) {
         result.push(chirpResponse(chirp));
