@@ -9,6 +9,7 @@ type AuthConfig = {
     jwtSecret: string,
     jwtLifetimeSeconds: number,
     refreshLifetimeSeconds: number,
+    polkaKey: string,
 }
 
 type DbConfig = {
@@ -40,6 +41,7 @@ export const config:ChirpyConfig = {
         jwtSecret: envOrThrow("JWT_SECRET"),
         jwtLifetimeSeconds: 60 * 60,
         refreshLifetimeSeconds: 60 * 60 * 24 * 60,
+        polkaKey: envOrThrow("POLKA_KEY"),
     },
     db: {
         url: envOrThrow("DB_URL"),

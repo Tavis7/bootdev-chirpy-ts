@@ -28,8 +28,21 @@ export async function handlerReset(req: Request, res: Response): Promise<void> {
     res.send(`Hits: ${config.api.fileserverHits}`);
 }
 
-import { hashPassword, checkPasswordHash, makeJWT, validateJWT, getBearerToken, makeRefreshToken } from "./auth.js";
-import { createRefreshToken, getRefreshToken, revokeRefreshToken } from "../db/queries/refreshTokens.js";
+import {
+    hashPassword,
+    checkPasswordHash,
+    makeJWT,
+    validateJWT,
+    getBearerToken,
+    makeRefreshToken,
+    getAPIKey,
+} from "./auth.js";
+
+import {
+    createRefreshToken,
+    getRefreshToken,
+    revokeRefreshToken,
+} from "../db/queries/refreshTokens.js";
 
 export async function handlerRegisterUser(req: Request, res: Response): Promise<void> {
     let userJson = req.body;
@@ -204,6 +217,10 @@ export async function handlerDeleteChirp(req: Request, res: Response) {
 }
 
 export async function handlerUpgradeUser(req: Request, res: Response) {
+    let apiKey = getAPIKey(req);
+    if (apiKey !== config.auth.polkaKey) {
+        throw new UnauthorizedError("Unauthorized");
+    }
     let hookJson = req.body;
     if (hookJson.event !== "user.upgraded" || typeof hookJson.data?.userId !== "string") {
         res.status(204).end();

@@ -61,3 +61,14 @@ export function makeRefreshToken() {
     let token = bytes.toString("hex");
     return token;
 }
+
+export function getAPIKey(req: Request) {
+    let auth = req.get("Authorization");
+    if (auth !== undefined) {
+        let parts = auth.match(/^(\w+)\s+(.*$)/);
+        if (parts !== null && parts.length > 2 && parts[1].toLowerCase() == "apikey") {
+            return parts[2].trim();
+        }
+    }
+    throw new UnauthorizedError("Unauthorized");
+}
