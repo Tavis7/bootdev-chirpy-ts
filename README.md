@@ -53,11 +53,11 @@ object members are a word followed by a colon and the type of the member.
 
 ```ts
 {
-    id: chirp.id,
-    createdAt: chirp.createdAt,
-    updatedAt: chirp.updatedAt,
-    body: chirp.body,
-    userId: chirp.userId,
+    id: string,
+    createdAt: timestamp,
+    updatedAt: timestamp,
+    body: string,
+    userId: string,
 }
 ```
 
