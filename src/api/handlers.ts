@@ -180,7 +180,12 @@ export async function handlerCreateChirp(req: Request, res: Response): Promise<v
 }
 
 export async function handlerGetChirps(req: Request, res: Response): Promise<void> {
-    let got = await getChirps();
+    let author: string | undefined;
+    console.log(req.query.authorId);
+    if (typeof req.query?.authorId === "string") {
+        author = req.query.authorId
+    }
+    let got = await getChirps(author);
     let result: Array<Chirp> = [];
     for (let chirp of got) {
         result.push(chirpResponse(chirp));
