@@ -36,8 +36,8 @@ object members are a word followed by a colon and the type of the member.
     createdAt: timestamp,
     updatedAt: timestamp,
     isChirpyRed: boolean,
-    token: JWT token,
-    refreshToken: refresh token,
+    token: string,
+    refreshToken: string,
 }
 ```
 
