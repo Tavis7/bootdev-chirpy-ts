@@ -47,7 +47,7 @@ export async function handlerRegisterUser(req: Request, res: Response): Promise<
 }
 
 export async function handlerUpdateUser(req: Request, res: Response) {
-    let userId = validateJWT(getBearerToken(req), config.api.secret)
+    let userId = validateJWT(getBearerToken(req), config.auth.jwtSecret)
     let userJson = req.body;
     if (typeof userJson.email !== "string" || typeof userJson.password !== "string") {
         throw new BadRequestError("Invalid request");
@@ -59,8 +59,6 @@ export async function handlerUpdateUser(req: Request, res: Response) {
 
     res.status(200).json(userResponse(updated));
 }
-
-const jwtExpirationTime = 60 * 60;
 
 export async function handlerLogin(req: Request, res: Response): Promise<void> {
     let loginJson = req.body;
@@ -74,11 +72,11 @@ export async function handlerLogin(req: Request, res: Response): Promise<void> {
         throw new UnauthorizedError("Incorrect email or password");
     }
     console.log(`Logged in ${user.id} ${user.email}`);
-    let token = makeJWT(user.id, jwtExpirationTime, config.api.secret);
+    let token = makeJWT(user.id, config.auth.jwtLifetimeSeconds, config.auth.jwtSecret);
     let refresh = await createRefreshToken({
         token: makeRefreshToken(),
         userId: user.id,
-        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 60)
+        expiresAt: new Date(Date.now() + 1000 * config.auth.refreshLifetimeSeconds)
     });
 
     console.log("Refresh row");
@@ -110,7 +108,9 @@ export async function handlerRefresh(req: Request, res: Response) {
         throw new UnauthorizedError("Refresh token has been revoked");
     }
 
-    let jwt = makeJWT(refreshTokenData.userId, jwtExpirationTime, config.api.secret);
+    let jwt = makeJWT(refreshTokenData.userId,
+        config.auth.jwtLifetimeSeconds,
+        config.auth.jwtSecret);
 
     res.status(200).json({
         token: jwt,
@@ -151,7 +151,7 @@ function userResponse(user: User) {
 }
 
 export async function handlerCreateChirp(req: Request, res: Response): Promise<void> {
-    let userId = validateJWT(getBearerToken(req), config.api.secret)
+    let userId = validateJWT(getBearerToken(req), config.auth.jwtSecret)
     let chirp = req.body
     if (!(typeof chirp.body === "string")) {
         throw new BadRequestError("Invalid request");
@@ -191,7 +191,7 @@ export async function handlerDeleteChirp(req: Request, res: Response) {
     if (typeof req.params.chirpId !== "string") {
         throw new Error("Invalid request");
     }
-    let userId = validateJWT(getBearerToken(req), config.api.secret)
+    let userId = validateJWT(getBearerToken(req), config.auth.jwtSecret)
     let chirp = await getChirp(req.params.chirpId);
     if (chirp === undefined) {
         throw new NotFoundError("Chirp not found");
